@@ -1,6 +1,8 @@
 # Folders
 data/train_images/
 data/test_images/
+venv/
+.idea/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
