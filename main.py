@@ -7,12 +7,22 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-
-
-# CREATE USEFUL FUNCTIONS
 from tensorflow.python.keras import Sequential
 
+# SET PARAMETERS
+CURRENT_PATH = os.path.abspath(os.getcwd())
+DATA_PATH = os.path.join(CURRENT_PATH, 'data')
+ALL_IMAGES_PATH = os.path.join(DATA_PATH, 'train_images')
+LABEL_CSV_FILE_LOCATION = os.path.join(DATA_PATH, 'train.csv')
+SPLITTED_IMAGES_PATH = os.path.join(DATA_PATH, 'splitted_images')
+TRAINING_DATA_PATH = os.path.join(SPLITTED_IMAGES_PATH, 'training\\')
+VALIDATION_DATA_PATH = os.path.join(SPLITTED_IMAGES_PATH, 'validation\\')
+validation_rate = 0.2
+training_batch_size = 128
+random.seed(33)
 
+
+# CREATE USEFUL FUNCTION
 def delete_create_folder(path):
     try:
         os.mkdir(path)
@@ -24,12 +34,6 @@ def delete_create_folder(path):
 
 
 # CREATE FOLDERS ACCORDING TO LABELS
-CURRENT_PATH = os.path.abspath(os.getcwd())
-DATA_PATH = os.path.join(CURRENT_PATH, 'data')
-ALL_IMAGES_PATH = os.path.join(DATA_PATH, 'train_images')
-LABEL_CSV_FILE_LOCATION = os.path.join(DATA_PATH, 'train.csv')
-
-
 def label_data(folder_path, label_csv_file_location):
     label_table = pd.read_csv(label_csv_file_location, sep=',')
     labels = np.unique(label_table['label'])
@@ -41,15 +45,9 @@ def label_data(folder_path, label_csv_file_location):
         finally:
             pass
 
-
 label_data(ALL_IMAGES_PATH, os.path.join(DATA_PATH, 'train.csv'))
 
 # SPLIT DATA IN TRAINING AND VALIDATION
-validation_rate = 0.2
-SPLITTED_IMAGES_PATH = os.path.join(DATA_PATH, 'splitted_images')
-random.seed(33)
-
-
 def split_data(split_data_folder_path, source_data_path, val_rate=0.2):
     delete_create_folder(split_data_folder_path)
     delete_create_folder(os.path.join(split_data_folder_path, 'training'))
@@ -72,7 +70,6 @@ def split_data(split_data_folder_path, source_data_path, val_rate=0.2):
 
 split_data(SPLITTED_IMAGES_PATH, ALL_IMAGES_PATH, validation_rate)
 
-
 # BALANCE UNBALANCED CLASSES BY OVERSAMPLING
 def balance_classes(data_to_balance_path):
     folders_list = os.listdir(data_to_balance_path)
@@ -91,14 +88,9 @@ def balance_classes(data_to_balance_path):
             samples_num_to_add -= 1
             added_files += 1
 
-
-TRAINING_DATA_PATH = os.path.join(SPLITTED_IMAGES_PATH, 'training\\')
-VALIDATION_DATA_PATH = os.path.join(SPLITTED_IMAGES_PATH, 'validation\\')
 balance_classes(TRAINING_DATA_PATH)
 
 # DATA AUGMENTATION AND RESCALING
-training_batch_size = 128
-
 train_datagen = ImageDataGenerator(
     rescale=1. / 255,
     rotation_range=40,
@@ -144,6 +136,7 @@ model: Sequential = tf.keras.models.Sequential([
 model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 model.summary()
 
+# MODEL TRAINING
 history = model.fit(
     train_generator,
     validation_data=validation_generator,
