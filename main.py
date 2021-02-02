@@ -18,7 +18,8 @@ SPLITTED_IMAGES_PATH = os.path.join(DATA_PATH, 'splitted_images')
 TRAINING_DATA_PATH = os.path.join(SPLITTED_IMAGES_PATH, 'training\\')
 VALIDATION_DATA_PATH = os.path.join(SPLITTED_IMAGES_PATH, 'validation\\')
 validation_rate = 0.2
-training_batch_size = 128
+training_batch_size = 64
+image_dimension = 300
 random.seed(33)
 
 
@@ -29,7 +30,7 @@ def delete_create_folder(path):
     except OSError as exc:
         if exc.errno != errno.EEXIST:
             raise
-        shutil.rmtree(path)
+        shutil.rmtree(path)  #if it already exists, delete it and create again
         os.mkdir(path)
 
 
@@ -45,7 +46,9 @@ def label_data(folder_path, label_csv_file_location):
         finally:
             pass
 
+
 label_data(ALL_IMAGES_PATH, os.path.join(DATA_PATH, 'train.csv'))
+
 
 # SPLIT DATA IN TRAINING AND VALIDATION
 def split_data(split_data_folder_path, source_data_path, val_rate=0.2):
@@ -55,7 +58,7 @@ def split_data(split_data_folder_path, source_data_path, val_rate=0.2):
     folders_list = os.listdir(source_data_path)
     for folder in folders_list:
         file_list = os.listdir(os.path.join(source_data_path, folder))
-        validation_file_list = random.sample(file_list, round(val_rate * len(file_list)))
+        validation_file_list = random.sample(file_list, round(val_rate * len(file_list))) #randomly select the validation set
         delete_create_folder(os.path.join(split_data_folder_path, 'training\\' + folder))
         delete_create_folder(os.path.join(split_data_folder_path, 'validation\\' + folder))
         folder_path = os.path.join(source_data_path, folder)
@@ -70,6 +73,7 @@ def split_data(split_data_folder_path, source_data_path, val_rate=0.2):
 
 split_data(SPLITTED_IMAGES_PATH, ALL_IMAGES_PATH, validation_rate)
 
+
 # BALANCE UNBALANCED CLASSES BY OVERSAMPLING
 def balance_classes(data_to_balance_path):
     folders_list = os.listdir(data_to_balance_path)
@@ -81,12 +85,13 @@ def balance_classes(data_to_balance_path):
         samples_num = len(file_list)
         samples_num_to_add = max_samples_num - samples_num
         added_files = 0
-        while samples_num_to_add > 0:
+        while samples_num_to_add > 0:  # add samples_num_to_add images in underrepresented classes
             file_to_copy = random.choice(file_list)
             shutil.copyfile(os.path.join(folder_path, file_to_copy),
                             os.path.join(folder_path, str(added_files).zfill(5) + file_to_copy))
             samples_num_to_add -= 1
             added_files += 1
+
 
 balance_classes(TRAINING_DATA_PATH)
 
@@ -94,9 +99,9 @@ balance_classes(TRAINING_DATA_PATH)
 train_datagen = ImageDataGenerator(
     rescale=1. / 255,
     rotation_range=40,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
-    shear_range=0.2,
+    # width_shift_range=0.2,
+    # height_shift_range=0.2,
+    # shear_range=0.2,
     zoom_range=0.2,
     horizontal_flip=True,
     fill_mode='nearest')
@@ -105,35 +110,60 @@ validation_datagen = ImageDataGenerator(rescale=1 / 255)
 
 train_generator = train_datagen.flow_from_directory(
     'C:/DS_Projects/Images_Classification/Cassava_Leaf_Desease_Classification/data/splitted_images/training/',
-    target_size=(300, 300),  # All images will be resized to 300x300
+    target_size=(image_dimension, image_dimension),
     batch_size=training_batch_size,
     class_mode='categorical')
 
 validation_generator = validation_datagen.flow_from_directory(
     'C:/DS_Projects/Images_Classification/Cassava_Leaf_Desease_Classification/data/splitted_images/validation/',
-    target_size=(300, 300),  # All images will be resized to 300x300
+    target_size=(image_dimension, image_dimension),
     batch_size=32,
     class_mode='categorical')
 
 # CALLBACKS CREATIONS
-checkpoint_cb = tf.keras.callbacks.ModelCheckpoint("cassava_classif_model.h5", save_best_only=True)
+checkpoint_cb = tf.keras.callbacks.ModelCheckpoint(os.path.join(CURRENT_PATH,'cassava_classif_model.h5'), save_best_only=True)
 early_stopping_cb = tf.keras.callbacks.EarlyStopping(patience=20, restore_best_weights=True)
 
-# MODEL BUILDING
-model: Sequential = tf.keras.models.Sequential([
-    tf.keras.layers.Conv2D(16, (3, 3), activation='relu', input_shape=(300, 300, 3)),
-    tf.keras.layers.MaxPooling2D(2, 2),
-    tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
-    tf.keras.layers.MaxPooling2D(2, 2),
-    tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
-    tf.keras.layers.MaxPooling2D(2, 2),
-    tf.keras.layers.Dropout(0.5),
-    tf.keras.layers.Flatten(),
-    tf.keras.layers.Dense(512, activation='relu'),
-    tf.keras.layers.Dense(5, activation='softmax')
-    ])
+# BUILD CONVOLUTIONAL MODEL
+#model: Sequential = tf.keras.models.Sequential([
+#    tf.keras.layers.Conv2D(16, (3, 3), activation='relu', input_shape=(image_dimension, image_dimension, 3)),
+#    tf.keras.layers.MaxPooling2D(2, 2),
+#    tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
+#    tf.keras.layers.MaxPooling2D(2, 2),
+#    tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+#    tf.keras.layers.MaxPooling2D(2, 2),
+#    tf.keras.layers.Dropout(0.5),
+#    tf.keras.layers.Flatten(),
+#    tf.keras.layers.Dense(8, activation='relu'),
+#    tf.keras.layers.Dense(256, activation='relu'),
+#    tf.keras.layers.Dense(5, activation='softmax')
+#])
 
-model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+# BUILD TRANSFER LEARNING MODEL WITH RESNET
+img_adjust_layer = tf.keras.layers.Lambda(tf.keras.applications.resnet50.preprocess_input,
+                                          input_shape=[image_dimension,image_dimension, 3])
+base_model = tf.keras.applications.ResNet50(weights='imagenet', include_top=False)
+base_model.trainable = False
+
+model: Sequential = tf.keras.models.Sequential([
+    img_adjust_layer,
+    base_model,
+    tf.keras.layers.GlobalAveragePooling2D(),
+    #tf.keras.layers.Dense(256, activation='relu'),
+    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dense(5, activation='softmax')
+])
+
+
+lr_scheduler = tf.keras.optimizers.schedules.ExponentialDecay(
+    initial_learning_rate=1e-5,
+    decay_steps=10000,
+    decay_rate=0.9)
+
+model.compile(optimizer='adam',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
 model.summary()
 
 # MODEL TRAINING
@@ -141,4 +171,5 @@ history = model.fit(
     train_generator,
     validation_data=validation_generator,
     steps_per_epoch=len(train_generator),
-    epochs=500)
+    epochs=10,
+    callbacks=[checkpoint_cb, early_stopping_cb])
