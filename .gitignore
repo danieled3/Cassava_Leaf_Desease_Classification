@@ -1,8 +1,9 @@
 # Folders
-data/train_images/
-data/test_images/
 venv/
 .idea/
+data/train_images/
+data/test_images/
+data/splitted_images/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
