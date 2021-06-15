@@ -1,3 +1,5 @@
+"""List of useful functions """
+
 # IMPORT LIBRARIES
 import os
 import errno
@@ -10,6 +12,7 @@ import pandas as pd
 
 Arguments:
     path: string with the path of the new folder"""
+
 
 def delete_create_folder(path):
     try:
@@ -28,26 +31,29 @@ Arguments:
     label_csv_file_location(string): path of the csv file where every image name is associated to the 
                              corresponding label"""
 
+
 def label_data(folder_path, label_csv_file_location):
     label_table = pd.read_csv(label_csv_file_location, sep=',')
     labels = np.unique(label_table['label'])
     for label in labels:
-        delete_create_folder(os.path.join(folder_path, label))
+        delete_create_folder(os.path.join(folder_path, str(label)))  # create a folder for each label
     for row in label_table.itertuples(index=False):
-        try:
+        try:                               # move file from the source folder to the folder of the corresponding label
             shutil.move(os.path.join(folder_path, row[0]),
                         os.path.join(folder_path, str(row[1]) + '\\' + row[0]))
-        finally:
+        except FileNotFoundError:     # file may have labels of images that are not in the folder
             pass
 
 
 """Randomly divide images in training set and test set and move them in the folders "training" and "test"
 
 Arguments:
-    split_data_folder_path(string): path of the folder where the folders "training" and "test" will be created and where images will be moved to
+    split_data_folder_path(string): path of the folder where the folders "training" and "test" will be created and 
+    where images will be moved to
     source_data_path(string): path where images are, divided in folders according to their labels
     val_rate(float): portion of images to use for validation set
     seed(integer): number to use as seed for random data splitting"""
+
 
 def split_data(split_data_folder_path, source_data_path, val_rate=0.2, seed=123):
     delete_create_folder(split_data_folder_path)
@@ -71,12 +77,12 @@ def split_data(split_data_folder_path, source_data_path, val_rate=0.2, seed=123)
                                 os.path.join(split_data_folder_path, 'training\\' + folder + '\\' + file))
 
 
-
 """Balance classes by oversampling 
 
 Arguments:
     data_to_balance_path(string): path of the folder where data to be balanced are
     seed(integer): number to use as seed for random choice of images to copy"""
+
 
 def balance_classes(data_to_balance_path, seed=123):
     folders_list = os.listdir(data_to_balance_path)

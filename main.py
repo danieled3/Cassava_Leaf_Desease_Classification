@@ -1,3 +1,6 @@
+"""Load data, perform data augmentation, train 2 models (classic convolutional model and ResNet) and evaluate
+performances"""
+
 # IMPORT LIBRARIES
 import os
 import tensorflow as tf
@@ -14,24 +17,22 @@ TRAINING_DATA_PATH = os.path.join(SPLITTED_IMAGES_PATH, 'training\\')  # folder 
 VALIDATION_DATA_PATH = os.path.join(SPLITTED_IMAGES_PATH, 'validation\\')  # folder to create
 
 training_batch_size = 512
-validation_batch_size=32
+validation_batch_size = 32
 image_dimension = 150
 
-
-
 # DATA AUGMENTATION AND RESCALING
-train_datagen = ImageDataGenerator(
+train_datagen = ImageDataGenerator(    #data augmentation
     rescale=1. / 255,
-    # rotation_range=40,
+    rotation_range=40,
     # width_shift_range=0.2,
     # height_shift_range=0.2,
     # shear_range=0.2,
-    # zoom_range=0.2,
+    zoom_range=0.2
     # horizontal_flip=True,
     # fill_mode='nearest'
 )
 
-validation_datagen = ImageDataGenerator(rescale=1 / 255)
+validation_datagen = ImageDataGenerator(rescale=1 / 255) # rescaling
 
 train_generator = train_datagen.flow_from_directory(
     'data/splitted_images/training/',
@@ -45,22 +46,23 @@ validation_generator = validation_datagen.flow_from_directory(
     batch_size=validation_batch_size,
     class_mode='categorical')
 
-# CALLBACKS CREATIONS
-checkpoint_cb = tf.keras.callbacks.ModelCheckpoint(os.path.join(CURRENT_PATH, 'cassava_classif_model.h5'),
-                                                   save_best_only=True)
+# EARLY STOPPING CALLBACKS
 early_stopping_cb = tf.keras.callbacks.EarlyStopping(patience=20, restore_best_weights=True)
 
+# CHECKPOINT CALLBACK
+checkpoint_conv_cb = tf.keras.callbacks.ModelCheckpoint(os.path.join(CURRENT_PATH, 'conv.h5'),
+                                                   save_best_only=True)
+
 # OPTION 1: BUILD CONVOLUTIONAL MODEL
-model = tf.keras.models.Sequential([
+model_conv = tf.keras.models.Sequential([
     tf.keras.layers.Conv2D(16, (3, 3), activation='relu', input_shape=(image_dimension, image_dimension, 3)),
     tf.keras.layers.MaxPooling2D(2, 2),
     tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
     tf.keras.layers.MaxPooling2D(2, 2),
-    #    tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
-    #    tf.keras.layers.MaxPooling2D(2, 2),
+    tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2, 2),
     tf.keras.layers.Dropout(0.2),
     tf.keras.layers.Flatten(),
-    #    tf.keras.layers.Dense(8, activation='relu'),
     tf.keras.layers.Dense(128, activation='relu'),
     tf.keras.layers.Dense(5, activation='softmax')
 ])
@@ -69,7 +71,7 @@ model = tf.keras.models.Sequential([
 img_adjust_layer = tf.keras.layers.Lambda(tf.keras.applications.resnet50.preprocess_input,
                                           input_shape=[image_dimension, image_dimension, 3])
 base_model = tf.keras.applications.ResNet50(weights='imagenet', include_top=False)
-base_model.trainable = False  # do not change parameters of ResNer, at least in the first epochs
+base_model.trainable = False  # do not change parameters of ResNet, at least in the first epochs
 
 model = tf.keras.models.Sequential([
     img_adjust_layer,
