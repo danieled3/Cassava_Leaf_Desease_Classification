@@ -21,7 +21,7 @@ and I analyzed performances in terms of accuracy and training/validation loss fu
 ## Motivation <a name="motivation" />
 I was curious to understand the potential of transfer learning in training models on real data.
 
-## Technical Aspect <a name="technical-aspects" />
+## Technical Aspects <a name="technical-aspects" />
 The main issues in this projects were the quantity and the extreme heterogeneity of Cassava images. So it was needed very high computation power to:
 * process a huge amount of data
 * perform data augmentation to avoid overfitting
@@ -29,13 +29,15 @@ The main issues in this projects were the quantity and the extreme heterogeneity
 
 I tackled this problem by using Google Colab and by configuring Tensorflow to work with the GPU of my laptop. The best solution would have been to use a virtual machine in AWS Sagemaker or similar but it was too expensive.
 
-## Result <a name="result" />
+## Results <a name="result" />
 The trends of accuracy functions and loss functions for the convolutional model are the following:
 
 <img src="https://user-images.githubusercontent.com/29163695/122765872-3bd03300-d2a1-11eb-89e0-cab12f31947c.png" height="350">
 <img src="https://user-images.githubusercontent.com/29163695/122765901-42f74100-d2a1-11eb-9639-aa87a1f2b939.png" height="350">
 
 Since the classes are 5, the images are very heterogeneous and the tested model has only 2 convolutional layers, an accuracy of 0.6 is a rather good result. After 14 epochs model overfits training data even if used data augmentation to generalize them. Performance may be improved by adding training data or by generating new images from training set in a different way. 
+
+The trends of accuracy functions and loss functions for the model built from Resnet are the following:
 
 <img src="https://user-images.githubusercontent.com/29163695/122765997-560a1100-d2a1-11eb-84d4-06ae093b42a6.png" height="350">
 <img src="https://user-images.githubusercontent.com/29163695/122765948-4b4f7c00-d2a1-11eb-8474-4cb21fab8dfd.png" height="350">
