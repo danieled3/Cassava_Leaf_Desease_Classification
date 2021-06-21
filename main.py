@@ -5,7 +5,7 @@ performances"""
 import os
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-import matplotlib.pyplot as plt
+import my_utils
 
 # SET PARAMETERS
 CURRENT_PATH = os.path.abspath(os.getcwd())
@@ -16,23 +16,24 @@ SPLITTED_IMAGES_PATH = os.path.join(DATA_PATH, 'splitted_images')  # folder to c
 TRAINING_DATA_PATH = os.path.join(SPLITTED_IMAGES_PATH, 'training\\')  # folder to create
 VALIDATION_DATA_PATH = os.path.join(SPLITTED_IMAGES_PATH, 'validation\\')  # folder to create
 
-training_batch_size = 512
+training_batch_size = 128  # >=512 exceed free system memory
 validation_batch_size = 32
 image_dimension = 150
+patience = 15  # patience for early stopping
 
 # DATA AUGMENTATION AND RESCALING
-train_datagen = ImageDataGenerator(    #data augmentation
+train_datagen = ImageDataGenerator(  # data augmentation
     rescale=1. / 255,
-    rotation_range=40,
-    # width_shift_range=0.2,
-    # height_shift_range=0.2,
-    # shear_range=0.2,
-    zoom_range=0.2
+    rotation_range=20,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    # shear_range=0.2,      # I would obtain data too different from test set
+    # zoom_range=0.2,
     # horizontal_flip=True,
-    # fill_mode='nearest'
+    fill_mode='nearest'
 )
 
-validation_datagen = ImageDataGenerator(rescale=1 / 255) # rescaling
+validation_datagen = ImageDataGenerator(rescale=1. / 255)  # rescaling
 
 train_generator = train_datagen.flow_from_directory(
     'data/splitted_images/training/',
@@ -47,11 +48,11 @@ validation_generator = validation_datagen.flow_from_directory(
     class_mode='categorical')
 
 # EARLY STOPPING CALLBACKS
-early_stopping_cb = tf.keras.callbacks.EarlyStopping(patience=20, restore_best_weights=True)
+early_stopping_cb = tf.keras.callbacks.EarlyStopping(patience=patience, restore_best_weights=True)
 
 # CHECKPOINT CALLBACK
 checkpoint_conv_cb = tf.keras.callbacks.ModelCheckpoint(os.path.join(CURRENT_PATH, 'conv.h5'),
-                                                   save_best_only=True)
+                                                        save_best_only=True)
 
 # OPTION 1: BUILD CONVOLUTIONAL MODEL
 model_conv = tf.keras.models.Sequential([
@@ -59,25 +60,10 @@ model_conv = tf.keras.models.Sequential([
     tf.keras.layers.MaxPooling2D(2, 2),
     tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
     tf.keras.layers.MaxPooling2D(2, 2),
-    tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
-    tf.keras.layers.MaxPooling2D(2, 2),
+    # tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+    # tf.keras.layers.MaxPooling2D(2, 2),
     tf.keras.layers.Dropout(0.2),
     tf.keras.layers.Flatten(),
-    tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(5, activation='softmax')
-])
-
-# OPTION 2: BUILD TRANSFER LEARNING MODEL WITH RESNET
-img_adjust_layer = tf.keras.layers.Lambda(tf.keras.applications.resnet50.preprocess_input,
-                                          input_shape=[image_dimension, image_dimension, 3])
-base_model = tf.keras.applications.ResNet50(weights='imagenet', include_top=False)
-base_model.trainable = False  # do not change parameters of ResNet, at least in the first epochs
-
-model = tf.keras.models.Sequential([
-    img_adjust_layer,
-    base_model,
-    tf.keras.layers.GlobalAveragePooling2D(),
-    # tf.keras.layers.Dense(256, activation='relu'),
     tf.keras.layers.Dense(128, activation='relu'),
     tf.keras.layers.Dense(5, activation='softmax')
 ])
@@ -89,34 +75,58 @@ lr_scheduler = tf.keras.optimizers.schedules.ExponentialDecay(
     decay_steps=10000,
     decay_rate=0.9)
 
-model.compile(optimizer='adam',
-              loss='categorical_crossentropy',
-              metrics=['accuracy'])
-model.summary()
+model_conv.compile(optimizer='adam',
+                   loss='categorical_crossentropy',
+                   metrics=['accuracy'])
+model_conv.summary()
 
 # TRAIN MODEL
-history = model.fit(
+history_conv = model_conv.fit(
     train_generator,
     validation_data=validation_generator,
     steps_per_epoch=len(train_generator),
-    epochs=20,
-    callbacks=[checkpoint_cb, early_stopping_cb])
+    epochs=100,
+    callbacks=[checkpoint_conv_cb, early_stopping_cb])
+
+# CHECKPOINT CALLBACK
+checkpoint_resnet_cb = tf.keras.callbacks.ModelCheckpoint(os.path.join(CURRENT_PATH, 'resnet.h5'),
+                                                          save_best_only=True)
+
+# OPTION 2: BUILD TRANSFER LEARNING MODEL WITH RESNET
+img_adjust_layer = tf.keras.layers.Lambda(tf.keras.applications.resnet50.preprocess_input,
+                                          input_shape=[image_dimension, image_dimension, 3])
+base_model = tf.keras.applications.ResNet50(weights='imagenet', include_top=False)
+base_model.trainable = False  # do not change parameters of ResNet, at least in the first epochs
+
+model_resnet = tf.keras.models.Sequential([
+    img_adjust_layer,
+    base_model,
+    tf.keras.layers.GlobalAveragePooling2D(),
+    # tf.keras.layers.Dense(256, activation='relu'),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dense(5, activation='softmax')
+])
+
+# COMPILE MODEL
+
+model_resnet.compile(optimizer='adam',
+                     loss='categorical_crossentropy',
+                     metrics=['accuracy'])
+model_resnet.summary()
+
+# TRAIN MODEL
+history_resnet = model_resnet.fit(
+    train_generator,
+    validation_data=validation_generator,
+    steps_per_epoch=len(train_generator),
+    epochs=100,
+    callbacks=[checkpoint_resnet_cb, early_stopping_cb])
 
 # PRINT TRAINING-VALIDATION LOSS AND ACCURACY
-acc = history.history['accuracy']
-val_acc = history.history['val_accuracy']
-loss = history.history['loss']
-val_loss = history.history['val_loss']
-
-epochs = range(len(acc))
-
-plt.plot(epochs, acc, 'r', label='Training accuracy')
-plt.plot(epochs, val_acc, 'b', label='Validation accuracy')
-plt.title('Training and validation accuracy')
-
-plt.figure()
-
-plt.plot(epochs, loss, 'r', label='Training Loss')
-plt.plot(epochs, val_loss, 'b', label='Validation Loss')
-plt.title('Training and validation loss')
-plt.legend()
+my_utils.print_history(history_conv,
+                       title='Loss Trend for Convolutional model',
+                       early_stopping_line=True, patience=patience)
+my_utils.print_history(history_resnet,
+                       title='Loss Trend for Transfer Learning model',
+                       early_stopping_line=True, patience=patience)

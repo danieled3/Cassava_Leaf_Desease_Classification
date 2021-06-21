@@ -7,6 +7,7 @@ import shutil
 import random
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 """Create a folder. If the folder already exists, delete it and create it again
 
@@ -38,10 +39,10 @@ def label_data(folder_path, label_csv_file_location):
     for label in labels:
         delete_create_folder(os.path.join(folder_path, str(label)))  # create a folder for each label
     for row in label_table.itertuples(index=False):
-        try:                               # move file from the source folder to the folder of the corresponding label
+        try:  # move file from the source folder to the folder of the corresponding label
             shutil.move(os.path.join(folder_path, row[0]),
                         os.path.join(folder_path, str(row[1]) + '\\' + row[0]))
-        except FileNotFoundError:     # file may have labels of images that are not in the folder
+        except FileNotFoundError:  # file may have labels of images that are not in the folder
             pass
 
 
@@ -102,3 +103,35 @@ def balance_classes(data_to_balance_path, seed=123):
                                          str(added_files).zfill(5) + file_to_copy))  # add prefix to file name
             samples_num_to_add -= 1
             added_files += 1
+
+
+"""Print linechart model training history with 2 metrics 
+
+Arguments:
+    history: History object from Tensorflow model training
+    metrics(list of strings): list of metrics to show
+    labels(list of strings): list of labels to use
+    title(string): title of the chart
+    early_stopping_line(boolean): if True show the Early stopping vertical line
+    patience: patience of the Early Stopping Callback, if used"""
+
+
+def print_history(history, metrics=['loss', 'val_loss'], labels=['Training Loss', 'Validation Loss'],
+                  title='Training and validation loss', early_stopping_line=False, patience=0):
+    assert len(metrics) == len(labels)  # same number of metrics and labels
+    metrics_num = len(metrics)  # number of metrics to show
+    epochs = range(len(history.history[metrics[0]]))  # x values
+    colors = ['r', 'b', 'c', 'm', 'y', 'k']
+    plt.figure()
+
+    for i in range(metrics_num):
+        color_index = i % len(colors)
+        plt.plot(epochs, history.history[metrics[i]], colors[color_index], label=labels[i])
+    if early_stopping_line:
+        plt.vlines(x=len(epochs) - patience-1, ymin=0, ymax=max(history.history[metrics[0]]),  # add early stopping vertical line
+                   colors='green', ls=':', lw=2,
+                   label='Early stopping')
+    plt.title(title)
+    plt.xlabel('Epochs')
+    plt.ylabel('Value')
+    plt.legend()
