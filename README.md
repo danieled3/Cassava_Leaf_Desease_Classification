@@ -12,11 +12,11 @@
   
 ## Overview <a name="overview" />
 The aim of this project is to classify real images of leafs of Cassava into four disease categories or a fifth category indicating a healthy leaf.
-I used data augmentation on data of Kaggle Project [*Cassava Leaf Deasease Classification*](https://www.kaggle.com/c/cassava-leaf-disease-classification) to train
+I used data augmentation on a part of data of Kaggle Project [*Cassava Leaf Deasease Classification*](https://www.kaggle.com/c/cassava-leaf-disease-classification) to train
 * a classical convolutional model with 2 convolutional layers
 * a model build from Resnet model with transfer learning
 
-and I analyzed performances in terms of accuracy and training and validation loss functions.
+and I analyzed performances in terms of accuracy and training/validation loss functions.
 
 ## Motivation <a name="motivation" />
 I was curious to understand the potential of transfer learning in training models on real data.
@@ -27,21 +27,20 @@ The main issues in this projects were the quantity and the extreme heterogeneity
 * perform data augmentation to avoid overfitting
 * build and train complex and deep models
 
-I tackled this probelm by using Google Colab and by configuring Tensorflow to work with the GPU of my laptop. The best solution would have been to use a virtual machine in AWS Sagemaker or similar but it was too expensive.
+I tackled this problem by using Google Colab and by configuring Tensorflow to work with the GPU of my laptop. The best solution would have been to use a virtual machine in AWS Sagemaker or similar but it was too expensive.
 
 ## Result <a name="result" />
-The confusion matrixes obtained from the predictions of the 4 analyzed models are the following:
+The trends of accuracy functions and loss functions for the convolutional model are the following:
 
-<img src="https://user-images.githubusercontent.com/29163695/122113334-3fd3ff00-ce22-11eb-80e2-741cc13019e5.png" height="400">
-<img src="https://user-images.githubusercontent.com/29163695/122112158-d0114480-ce20-11eb-85b8-47b4912d23ca.png" height="400">
+<img src="https://user-images.githubusercontent.com/29163695/122765872-3bd03300-d2a1-11eb-89e0-cab12f31947c.png" height="350">
+<img src="https://user-images.githubusercontent.com/29163695/122765901-42f74100-d2a1-11eb-9639-aa87a1f2b939.png" height="350">
 
-<img src="https://user-images.githubusercontent.com/29163695/122112221-e0292400-ce20-11eb-8703-a550ec62404e.png" height="400">
-<img src="https://user-images.githubusercontent.com/29163695/122112292-f0d99a00-ce20-11eb-9e06-88a16a05e469.png" height="400">
+Since the classes are 5, the images are very heterogeneous and the tested model has only 2 convolutional layers, an accuracy of 0.6 is a rather good result. After 14 epochs model overfits training data even if used data augmentation to generalize them. Performance may be improved by adding training data or by generating new images from training set in a different way. 
 
-I noticed that:
-1. The classification model provides a higher accuracy even if some predictions are heavily wrong (i.e. a lot of "5" in place of "1" or vice versa). The MAE is the highest because classes are independent and sorting information is not used.
-2. Even if the regression models have the same complexity of the classification model, they do not provide so high accuracy. However, thanks to the optimization function used in the training phase, prediction errors are often lower.
-3. Both classification and regression models, even if they are very simple, allow reaching the same precision of a human being. It is a proof of the potential of LSTM layers and convolutional layers in neural networks.
+<img src="https://user-images.githubusercontent.com/29163695/122765997-560a1100-d2a1-11eb-84d4-06ae093b42a6.png" height="350">
+<img src="https://user-images.githubusercontent.com/29163695/122765948-4b4f7c00-d2a1-11eb-8474-4cb21fab8dfd.png" height="350">
+
+The model built from Resnet assures almost the same accuracy of the convolutional model. Training loss is always higher than validation loss because training data, thanks to data augmentation, are more complex than validation data and our model has few trainable parameters. Adding some more layers and more nodes after Resnet layers may improve training and validation accuracy.
 
 ## Technologies <a name="technologies" />
 I used *Tensorflow/Keras* for image preprocessing, data aumentation, ResnNet model implementation and model training. In order to increase computation power I also leverage *Google Colab*.
@@ -50,7 +49,8 @@ I used *Tensorflow/Keras* for image preprocessing, data aumentation, ResnNet mod
 <img src="https://user-images.githubusercontent.com/29163695/122078058-94fd1a00-cdfc-11eb-93d4-fe4159a0675a.png" height="200">
 
 ## To Do <a name="to-do" />
-* To optimize performances it would be useful to combine more models (ensemble learning). In this project we have an underfitting issue so we need a more complex model and a more effective data preprocessing.
+* Train the parameters of Resnet after some epochs to further decrease loss function
+* To optimize performances it would be useful to combine more models (ensemble learning). In this project we have an underfitting issue so we need a more complex model and a more effective data preprocessing
 * Train deeper model by using cloud services (GCP, Azure, AWS Sagemaker)
 
 ## File List <a name="file-list" />
