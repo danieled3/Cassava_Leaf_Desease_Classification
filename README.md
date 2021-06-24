@@ -1,4 +1,4 @@
-# Cassava Leaf Desease: Image Classification
+# Cassava Leaf Disease: Image Classification
 
 ## Table of Content
   * [Overview](#overview)
