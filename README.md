@@ -11,10 +11,10 @@
 
   
 ## Overview <a name="overview" />
-This project aims to classify real images of leaves of Cassava into four disease categories or a fifth category indicating a healthy leaf.
+This project aims to classify authentic images of leaves of Cassava into four disease categories or a fifth category indicating a healthy leaf.
 I used data augmentation on a part of data of Kaggle Project [*Cassava Leaf Disease Classification*](https://www.kaggle.com/c/cassava-leaf-disease-classification) to train
 * a classical convolutional model with 2 convolutional layers
-* a model build from Resnet model with transfer learning
+* a model built from Resnet model with transfer learning
 
 and I analyzed performances in terms of accuracy and training/validation loss functions.
 
@@ -22,7 +22,7 @@ and I analyzed performances in terms of accuracy and training/validation loss fu
 I was curious to understand the potential of transfer learning in training models on real data.
 
 ## Technical Aspects <a name="technical-aspects" />
-The main issues in this projects were the quantity and the extreme heterogeneity of Cassava images. So it was needed very high computation power to:
+The main issues in this project were the quantity and the extreme heterogeneity of Cassava images. So it was needed very high computation power to:
 * process a huge amount of data
 * perform data augmentation to avoid overfitting
 * build and train complex and deep models
